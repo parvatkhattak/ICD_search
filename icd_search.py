@@ -5,14 +5,7 @@ import time
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware  # Add this import
 from functools import lru_cache
-import uvicorn
-from fastapi import FastAPI
-from dotenv import load_dotenv
-load_dotenv()
-
-
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -188,6 +181,9 @@ async def search_code(code: str, limit: int = Query(20, ge=1, le=100)):
         logger.error(f"Error searching code {code}: {e}")
         return JSONResponse(content={"error": f"Failed to search code: {str(e)}"}, status_code=500)
 
+# Initialize data when module is imported
+load_data()
+
 # Add a route to force reload data (useful for development/testing)
 @router.get("/reload-icd-data")
 async def reload_data():
@@ -207,61 +203,3 @@ async def reload_data():
     except Exception as e:
         logger.error(f"Error reloading data: {e}")
         return JSONResponse(content={"error": f"Failed to reload data: {str(e)}"}, status_code=500)
-
-# Initialize data when module is imported
-load_data()
-
-# Create FastAPI app and include router
-def create_app():
-    """Create and configure the FastAPI application"""
-    app = FastAPI(
-        title="ICD-10 Search API",
-        description="Fast search API for ICD-10 medical codes",
-        version="1.0.0"
-    )
-    
-    # Add CORS middleware - THIS IS THE KEY FIX
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],  # In production, replace with specific origins like ["http://localhost:3000", "https://yourdomain.com"]
-        allow_credentials=True,
-        allow_methods=["*"],  # Or specify specific methods like ["GET", "POST"]
-        allow_headers=["*"],  # Or specify specific headers
-    )
-    
-    # Include the router
-    app.include_router(router, prefix="/api/v1", tags=["ICD-10 Search"])
-    
-    # Add a simple health check endpoint
-    @app.get("/")
-    async def root():
-        return {"message": "ICD-10 Search API is running", "status": "healthy"}
-    
-    return app
-
-# Main entry point for running the application
-if __name__ == "__main__":
-    print("Starting ICD-10 Search API server...")
-    
-    # Create the FastAPI app
-    app = create_app()
-    
-    # Configure server settings
-    host = os.getenv("HOST", "127.0.0.1")
-    port = int(os.getenv("PORT", 8000))
-    debug = os.getenv("DEBUG", "False").lower() == "true"
-    
-    print(f"Server will run on http://{host}:{port}")
-    print("Available endpoints:")
-    print(f"  - Health check: http://{host}:{port}/")
-    print(f"  - Search codes: http://{host}:{port}/api/v1/search/{{code}}")
-    print(f"  - Reload data: http://{host}:{port}/api/v1/reload-icd-data")
-    
-    # Run the server
-    uvicorn.run(
-        app,
-        host=host,
-        port=port,
-        reload=debug,
-        log_level="info"
-    )
