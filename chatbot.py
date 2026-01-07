@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load the environment variables
 load_dotenv()
 
 # Configure logging
